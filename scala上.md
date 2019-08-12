@@ -86,4 +86,44 @@ apply函数
 #### 语句终结符、块表达式 ####
 
  - 默认情况下，scala不需要语句终结符，默认将一行作为一个语句。
- - 如果一行要发多条语句，必须使用语句终结符。
+
+ - 如果一行要发多条语句，必须使用语句终结符。scala使用分号作为语句终结符。
+
+   ` var a,b,c=0; if (a < 10) { b= b+1; c+ c+1}`
+
+- 块表达式，在scala里面使用{},其中可以包含多条语句，最后一个语句的值就是块表达式的返回值。
+
+  *scala表达式返回值不需要return*
+
+#### 输入与输出 ####
+
+- print打印时不加换行符，println打印时会加一个换行符
+- readLine允许我们从控制台读取用户输入的数据，类似java中的System.in和Scanner的作用
+- Console.readLine()不建议使用
+- 建议使用java中的BufferReader中的readLine
+
+####  循环 ####
+
+- while循环，用法和java类似
+
+  ​	` var n=10;while(n>0){println(n);n-=1}`
+
+- for循环
+
+  ​	` var n=10;for (i<-1 to n) println(i)`//打印1到n
+
+  ​	`for(i<-1 until n) println(i) `//打印1到n-1
+
+  ​	` for(i<-"Hello,world")println(i)`//打印每个char
+
+- 高级for循环
+
+  - if守卫：取偶数
+
+    ` for(i<-1 to 10 if i %2 == 0)println(i)`
+
+  - for推导式：构造集合
+
+    ` for(i<- 1 to 10) yield i* 2`//生成一个indexedSeq
+
+## 函数入门
