@@ -56,3 +56,34 @@ apply函数
 ​	scala中的apply函数是一种函数，在scala中，可以声明apply函数。而使用 类名（） 的形式，其实是类名.apply() 的一种缩写
 
 例如： “Hello”（6） 因为在StringOps类中有def apply（n：Int）：Char的函数，所以“Hello”（6）实际上是“Hello”.apply(6)的缩写。
+
+## 条件控制与循环 ##
+
+#### if表达式 ####
+
+- 在scala中if表达式是有返回值的，为if或者else最后一行语句返回的值。
+
+  ` val isAdult = if(age > 18) 1 else 0 //isAdult为1或0` 
+
+- if表达式的类型推断
+
+   如果if和else字句的值类型不同，scala会自动进行判断，取两个类型的公共父类型
+
+  ​	如：if (age >18) 1 else 0,表达式返回值的类型是Int，因为1和0都是Int
+
+  ​	if （age> 18） "adult" else 0,此时if和else的返回值分别是String和Int，表达式返回值类型为Any，Any是String和Int的公共父类型。
+
+  ​	如果if后面没有else，默认else的值是Unit，也用()表示，类似java中的void或者null。
+
+  ​		如 if（age>18） "adult"等价于 if (age >18 ) "adult" else ().此时表达式返回值为AnyVal。
+
+- 如何在Scala repl中执行多行代码
+
+  ​	：paste进入编辑模式，ctrl-D完成输入
+
+  
+
+#### 语句终结符、块表达式 ####
+
+ - 默认情况下，scala不需要语句终结符，默认将一行作为一个语句。
+ - 如果一行要发多条语句，必须使用语句终结符。
