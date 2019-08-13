@@ -17,7 +17,9 @@
 
 ## 基础语法
 
-	### 声明变量
+### 声明变量
+
+
 
 val 不可变变量，val声明的常量，值不能被修改
 
@@ -128,10 +130,222 @@ apply函数
 
 ## 函数入门
 
-	## 函数定义与调用
+## 函数定义与调用
 
-+ 在scala中定义函数时，需要定义函数的函数名、参数、函数体
 
-  - 单行函数 def 函数名(变量名:变量类型):返回值类型={表达式语句}
 
-    ​	
+  - 在scala中定义函数时，需要定义函数的函数名、参数、函数体
+
+-  def 函数名(变量名:变量类型):返回值类型={表达式语句}
+
+  ​	如果函数体只有一行代码，则{}可以省略不写。代码块中最好一行的返回值就是整个函数的返回值，scala不使用return返回 值的。
+
+
+
+## 函数参数
+
+- 有时，我们调用某些函数时，不希望给出参数的具体值，而希望使用参数自身的默认值，此时需要在定义函数时使用默认参数。
+
+  ​	 def 函数名(变量名1:变量类型1，变量名2:变量类型2 = "mid",变量名2:变量类型2 = "last"):返回值类型={表达式语句}
+
+  ​	如果给出的参数不够，则会从左往右依次应用参数。
+
+  
+
+## 带名参数
+
+ - 在调用函数时，也可以不按照函数定义的参数顺序来传递参数，而是使用带名参数的方式来传递。
+ - 调用函数时还可以混合使用未命名参数和带名参数，但是未命名参数必须排在带名参数前面
+ - 建议在参数多的时候，尽量使用带名参数的形式，这样不容易出错
+
+## 变长参数
+
+ - 在scala中，有时我们需要将函数定义为参数可变的形式，此时可以使用变长参数定义函数
+
+   ```scala
+   def sum(nums:Int*)={
+       var res=0;
+       for (num <- nums)
+       	res += num
+       res
+   }
+   sum(1,2,3,4,5)
+   ```
+
+## 过程
+
+ - 在scala中，定义函数时，如果函数体直接包裹在了{}里面，而没有使用 = 连接，则函数的返回值类型就是Unit，这样的函数就称之为过程。
+
+   ​		` def sayHello(name:String){"hello, "+name} `
+
+ - 过程通常用于不需要返回值的函数。
+
+ - 过程还有一种写法，就是将函数的返回值类型定义为Unit。
+
+     ` def sayHello(name:Sring):Unit = "Hello, "+name`
+
+## lazy值
+
+ - 在scala中，提供了lazy值的特性，就是说如果将一个变量声明为lazy，则只有在第一次使用该变量时，变量对应的表达式才会发生计算。这种特性对于特别耗时的计算操作特别有用，比如打开问及那进行IO、网络IO等。
+
+
+
+## 异常try-catch
+
+
+```scala
+try {
+  throw new IllegalArgumentException("x should not be negative")
+} catch {
+
+  case e1: IllegalArgumentException => println("illegal argument")
+  case e2: IOException => println("io exception")
+
+  case _: IllegalArgumentException => println("Illegal Argument!")
+} finally {
+  print("release resources!")
+}
+
+
+
+```
+
+# 数组操作
+
+ - 在scala中，Array和Java中的数组类似，都是长度不可变的。
+
+   ​	` val a = new Array[Int](10)`
+
+- 可以直接使用Array() 创建数组，元素类型自动推断
+
+  ​	
+
+## ArrayBuffer
+
+ - ArrayBuffer是scala里面长度可变的集合类
+
+ - 使用前需要先导入 import scala.collection.mutable.ArrayBuffer
+
+ - ArrayBuffer 也支持直接创建并初始化 如ArrayBuffer(1,2,3)
+
+   ``` scala
+   val b= new ArrayBuffer(1,2,3) //创建ArrayBuffer
+   b +=(4,5) //添加一个或多个元素
+   b ++=Array(6,7,8)	//添加其他集合中所有元素
+   b.trimEnd(3)	//从尾部截断指定个数的元素
+   b.insert(5,6)	//向指定位置插入元素，位置后面元素向后移动
+   b.remove(1)	//移除角标为1的元素
+   b.remove(1,3)	//移除角标1到3的元素
+   ```
+
+- Array和ArrayBuffer可以互相进行转换
+
+  ​	b.toArray
+
+  ​	arr.toBuffer
+
+## 遍历Array和ArrayBuffer
+
+ - 使用for循环和util遍历Array/ArrayBuffer
+    - `for(i<-0 util b.length)println(b(i))`
+    - 从尾部遍历 `for(i<- (0 util b.length).reverse )println(b(i))`
+- 使用增强for循环遍历Array/ArrayBuffer
+  - `for(e<- b)println(e)`
+
+## 数组常见操作
+
+ - 求和
+    - `val a=Array(1,2,3); val sum=a.sum`
+- 求最大值
+  - `val max = a.max`
+- 排序
+  - `scala.util.Sorting.quickSort(a)`
+- 获取数组中所有的元素
+  - `a.mkString`
+  - `a.mkString(",")` 生成字符串（String = 1,2,3,4,5）
+  - `a.mkString("[",",","]")` String = [1,2,3,4,5]
+- 使用yield和函数时编程转换数组
+  - 对Array进行转换，获取的还是Array
+    - `val a=Array(1,2,3);val a2 = for(ele<- a)yield ele * ele`
+  - 对ArrayBuffer进行转换，获取的还是ArrayBuffer
+    - `val b =ArrayBuferr(1,2,3,4);val b2=for(ele<-b) yield ele * ele`
+  - 结合if守卫，仅转换需要的元素
+    - `val b3 = for (ele <-b if ele %2 ==0 )yield ele*ele`
+- 使用函数式编程转换数组
+  - `a.filter(_%2==0).map(2*_)` 【推荐使用这种形式】
+  - `a.filter {_%2==0} map {2*_} ` [中间需要复杂逻辑转换的时候使用这种格式] 
+
+# Map和Tuple
+
+## 创建map
+
+ - 创建一个不可变的Map
+    - `val ages = Map("li"->12,"sa"->12)` 不可修改
+- 创建一个可变的Map
+  - `val ages = scala.collection.mutable.Map("li"->12,"sa"->3)` 可以修改、添加元素
+- 另一种方式定义Map元素
+  - `val ages = Map(("li"->12),("sa"->2))` 不可修改
+- 创建一个空的HashMap
+  - `val ages = new scala.collection.mutable.HashMap[String,Int]()`
+
+## 操作 map-查询
+
+ - 获取指定key对应的value，如果key不存在，会报错
+    - `val age = ages("li")`
+- 使用contains函数检查key是否存在
+  - `val age = if(ages.contains("li"))ages("li") else 0`
+- 改良版：getOrElse函数（建议使用）
+  - `val age = ages.getOrElse("li",0)` 
+
+## 操作 map-修改
+
+ - 更新map元素 `ages("li")=18`
+ - 增加多个元素 `ages += ("ha"->23,"adw"->89)`
+ - 移除元素    ` ages -= "ha" `
+ - 不可变map的操作（，都是返回了一个新的map）
+    - 更新不可变的map，其实是拼接不可变map，产生了新的map
+       - `val ages2 = ages + ("lq"->1)`
+   - 移除不可变的元素
+     - `val ages3 = ages- "Tom"`
+
+## 操作 map-遍历
+
+ - 遍历map的entrySet
+    - `for((key,value)<-ages)println(key+" "+value)`
+- 遍历map的key
+  - ` for(key<-ages.keySet)println(key)` 
+- 遍历map的value
+  - `for(value<-ages.values)println(value)` 
+- 生成新map，反转key和value
+  - `for((key,value)<-ages)yield(value,key) ` 
+
+## SortMap和LinkedHashMap
+
+ - SortedMap可以自动对Map的key进行排序【针对有序的map场景】
+    - `val ages = scala.collection.immutable.SortedMap("li"->12,"zhang"->34)` 
+- LinkedHashMap可以记住插入entry的顺序
+  - `val ages = new scala.collection.mutable.LinkedHashMap[String, Int]()` Map内元素顺序为元素插入顺序
+
+## tuple
+
+ - 与Array一样，元组也是不可变的，但是与列表不同的是元组可以包含不同类型的元素
+
+    - tuple元素角标从1开始
+    - `val t = (1,3,14,"Fred")`
+    - t._1 获取tuple中的第一个元素
+
+- 目前scala支持的元组最大长度是22.对于更大长度，可以使用集合。
+
+- zip操作
+
+  - ```scala
+    val names = Array("li","sa")
+    val ages =Array(12,45)
+    val nameAges = names.zip(ages)
+    for((name,age)<-nameAges)println(name+":"+age)
+    ```
+
+
+
+# END
+
