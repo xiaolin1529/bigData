@@ -58,16 +58,38 @@
  -	transformation算子一般基于RDD做一些处理，处理之后返回新的RDD。
  -	action 算子是产生最终结果的算子，返回的数据不是RDD，如果有返回数据，那么数据返回到Driver端。
  -	transformation 算子有lazy这个特性（延迟加载），如果一个sparkjob中只有transformation算子，没有action算子，那么这个任务是不会执行的。
- -	action 算子才会触发sparkjob的执行。
+ -	action 算子才会触发sparkjob的执行，从而触发这个action之前所有的transformation的执行。
  -	由于transformation算子的lazy特性，Spark通过这种lazy特性，来进行底层Spark应用执行的优化，避免产生过多中间结果。
  -	一些特殊的transformation算子：groupByKey,sortByKey,reduceByKey,这些算子只能在Tuple2（）类型的RDD后面使用。
 
 # 常见的transformation算子
 
-- 
+- map：将RDD中中每个元素传入自定义函数，获取一个新函数组成新的RDD
+- filter：对RDD中每个元素进行判断，如果返回true则保留，返回false则剔除。
+- flatMap:与map类似，但是对每个元素都可以返回一个或多个新元素。
+- groupByKey：根据key进行分组，每个key对应一个Iterable<value>
+- reduceByKey:对每个key对应的value进行reduce操作。
+- sortByKey：对每个key对应的value进行排序操作。
+- join:对两个包含<key,value>对的RDD进行join操作，每个key join 上的pair，都会传入自定义函数进行处理。
+- cogroup:同join，但是每个key对应的Iterable<value>都会传入自定义函数进行处理。
 
 # 常见的action 算子
 
- - 
- - 
+
+
+ - reduce：将RDD中的所有元素进行聚合操作。第一个和第二个元素聚合，值与第三个元素聚合，值与第四个元素聚合，依次类推。
+
+ - collect:将RDD中所有元素获取到本地客户端。
+
+ - count：获取RDD元素总数。
+
+ - 获取RDD中前n个元素。
+
+ - saveAsTextFile：将RDD元素保存到文件中，对每个元素调用toString方法。
+
+ - countByKey：对每个key对应的值进行count计数。
+
+ - foreach：遍历RDD中的每个元素。
+
+   
 
