@@ -34,11 +34,11 @@
 
 - 默认的shuffle操作原理剖析
 
-  - ![SparkShuffle-1](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/>SparkShuffle-1.png)
+  - ![SparkShuffle-1](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/SparkShuffle-1.png)
 
 - 优化后的shuffle操作原理剖析
 
-  - ![SparkShuffle-2](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/>SparkShuffle-2.png)
+  - ![SparkShuffle-2](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/SparkShuffle-2.png)
 
 - **Spark shuffle操作的两个特点**
 
