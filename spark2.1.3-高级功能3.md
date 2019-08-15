@@ -12,7 +12,7 @@
 
 - Spark 的job是根据action算子触发的，遇到action算子就会起一个job，job里面又划分了很多stage，然后每一个stage里面运行了很多个task，**satge的划分依据就是看是否产生了shuffle（即宽依赖）** 遇到一个shuffle操作就划分为前后两个stage，stage是由一组并行的task组成，stage会将一批task用TaskSet封装，提交给TaskScheduler进行分配，最后发送到Executor执行。 
 - 切割规则：从后往前，遇到宽依赖就切割stage
-  - ![stage的划分](D:\Documents\GitHub\bigData\img\SparkStage.png)
+  - ![stage的划分](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/SparkStage.png)
   - 从后往前看，RDD之间是有血缘关系的，后面的RDD依赖前面的RDD，也就是说，后面的RDD要等前面的RDD执行完，才会执行，所有从后往前遇到宽依赖就分为两个stage，shuffle前一个，shuffle后一个，如果整个过程没有产生shufle那就指挥有一个stage，所以上图中 RDD a就单独一个stage1，RDD c,d,e,f被划分在stage2中，最后RDD b和RDD g划分在了stage3里面。
 
 ## Spark 的三种提交模式
