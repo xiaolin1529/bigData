@@ -138,7 +138,16 @@
 ## 共享变量的工作原理
 
  - Spark一个非常重要的特性就是共享变量
-    - 
+    - 默认情况下，如果在一个算子的函数中使用到了某个外部的变量，那么这个变量的值会被拷贝到每个task中。此时每个task只能操作自己那份变量副本。如果多个task想要共享某个变量，那么这种方式是做不到的。
+- Spark 为此提供了两种共享变量，一种是Broadcast Variable（广播变量），另一种是Accumulator（累加变量）。
+  - Broadcast Vatiable 会将使用到的变量，仅仅为每个节点拷贝一份，更大的用处是优化性能，减少网络传输以及内存消耗。
+  - Accumulator 则可以让多个task共同操作一份变量，主要可以进行累加操作。
+
+
 
 ## Broadcast Variable 和Accumulator
+
+ - Spark提供的Broadcast Variable，是只读的。并且在每个节点上只会有一份副本，而不会为每个task都拷贝一份副本。因此其最大作用，就是减少网络消耗。
+ - 可以通过SparkContext的broadcast（）方法，来针对某个变量创建广播变量，然后再算子的函数内，使用到广播变量时，每个节点只会拷贝一份副本里。每个节点可以使用广播变量的value()方法取值。记住，广播变量，是只读的。
+ - Spark提供的Accumulator，主要用于多个节点对一个变量进行共享性的操作。Accumulator只提供了累加的功能。但是确实给我们提供了多个task对一个变量并行操作的功能。但是task只能对Accmulator进行累加操作，不能读取它的值。只有Driver程序可以读取Accumulator的值。
 
