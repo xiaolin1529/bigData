@@ -176,8 +176,10 @@ java是完全面向对象的编程语言，没有任何面向过程编程语言�
 
   - scala的集合是分成可变和不可变两类集合的。
 
-    - 不可变集合就是说，集合的元素可以动态修改。
+    - 可变集合就是说，集合的元素可以动态修改。
+      - ![scala可变集合继承层级](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/scala可变集合继承层级.png)
     - 不可变集合在初始化之后，就无法修改了。
+      - ![scala不可变集合继承层级](https://raw.githubusercontent.com/wangxiaolin123/bigData/master/img/scala不可变集合继承层级.png)
     - 分别对应scala.collection.mutable和scala.collection.immutable两个包
 
   - Seq下包含了Range、ArrayBuffer、List等trait。
