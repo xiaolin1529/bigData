@@ -85,7 +85,8 @@
  - Hive有哪几种表类型
  - distinct by和group by区别
  - sortby和order by区别
- - 
+
+
 
 
 
