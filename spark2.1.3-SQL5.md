@@ -95,13 +95,79 @@
 
 ## 函数详解【内置函数+开窗函数】
 
+- 内置函数
 
+  | 种类           | 函数                                                         |
+  | -------------- | ------------------------------------------------------------ |
+  | 聚合函数       | approxCountDistinct, avg, count, countDistinct, first, last, max, mean, min, sum, sumDistinct |
+  | 集合函数       | array_contains, explode, size, sort_array                    |
+  | 日期/时间函数1 | 日期时间转换
+unix_timestamp, from_unixtime, to_date, quarter, day, dayofyear, weekofyear, from_utc_timestamp, to_utc_timestamp
+从日期时间中提取字段
+year, month, dayofmonth, hour, minute, second |
+  | 日期/时间函数2 | **日期/时间计算
+datediff, date_add, date_sub, add_months, last_day, next_day, months_between
+获取当前时间等
+current_date, current_timestamp, trunc, date_format** |
+  | 数学函数       | abs, acros, asin, atan, atan2, bin, cbrt, ceil, conv, cos, sosh, exp, expm1, factorial, floor, hex, hypot, log, log10, log1p, log2, pmod, pow, rint, round, shiftLeft, shiftRight, shiftRightUnsigned, signum, sin, sinh, sqrt, tan, tanh, toDegrees, toRadians, unhex |
+  | 混合函数       | array, bitwiseNOT, callUDF, coalesce, crc32, greatest, if, inputFileName, isNaN, isnotnull, isnull, least, lit, md5, monotonicallyIncreasingId, nanvl, negate, not, rand, randn, sha, sha1, sparkPartitionId, struct, when |
+  | 字符串函数     | ascii, base64, concat, concat_ws, decode, encode, format_number, format_string, get_json_object, initcap, instr, length, levenshtein, locate, lower, lpad, ltrim, printf, regexp_extract, regexp_replace, repeat, reverse, rpad, rtrim, soundex, space, split, substring, substring_index, translate, trim, unbase64, upper |
+  | 窗口函数       | cumeDist, denseRank, lag, lead, ntile, percentRank, rank, rowNumber |
+
+  
 
 ## spark sql工作原理剖析以及性能优化
+
+ - 设置shuffle过程中的并行度：spark.sql.shuffle.partition(200)
+ - 在Hive数据仓库建设过程中，合理设置数据类型，比如能设置int的就不要设置为bigint，减少数据类型导致的不必要的内存开销。
+ - 编写SQL的时候，尽量给出明确的列名，比如select name from students。不宜写select * 
+ - 并行处理查询结果：对于Spark SQL查询的结果，如果数据量比较大，比如超过1000条，那么就不要一次性collect()到Driver再处理。使用foreach()算子，并行处理查询结果。
 
 
 
 ## hive on spark
 
+
+
+ - Hive是目前大数据领域，事实上的SQL标准。其底层默认是基于MapReduce实现的，但是由于MapReduce速度实在比较慢，因此这两年，陆续出来了新的SQL查询引擎。包括Spark SQL，Hive On Tez，Hive On Spark等。
+ - Spark SQL与Hive On Spark是不一样的。Spark SQL是Spark自己研发出来的针对各种数据源，包括Hive、JSON、Parquet、JDBC、RDD等都可以执行查询的，一套基于Spark计算引擎的查询引擎。因此它是Spark的一个项目，只不过提供了针对Hive执行查询的工功能而已。适合在一些使用Spark技术栈的大数据应用类系统中使用。
+ - 而Hive On Spark，是Hive的一个项目，它是指，不通过MapReduce作为唯一的查询引擎，而是将Spark作为底层的查询引擎。Hive On Spark，只适用于Hive。在可预见的未来，很有可能Hive默认的底层引擎就从MapReduce切换为Spark了。适合于将原有的Hive数据仓库以及数据统计分析替换为Spark引擎，作为全公司通用的大数据统计分析引擎。
+
 ## 案例-每日Top3热点搜索词统计
+
+ - 数据格式：
+
+    - 日期 用户 搜索词 城市 平台 版本
+
+ - 需求：
+
+    - 1、筛选出符合查询条件（城市、平台、版本）的数据
+    - 2、统计出每天搜索uv排名前3的搜索词
+    - 3、按照每天的top3搜索词的uv搜索总次数，倒序排序
+    - 4、将数据保存到hdfs中
+
+- 实现思路
+
+  - 1、针对原始数据（HDFS文件），获取输入的RDD
+
+  - 2、使用filter算子，去针对输入RDD中的数据，进行数据过滤，过滤出符合查询条件的数据。
+
+    - 2.1 普通的做法：直接在fitler算子函数中，使用外部的查询条件（Map），但是，这样做的话，是不是查询条件Map，会发送到每一个task上一份副本。（性能并不好）
+    - 2.2 优化后的做法：将查询条件，封装为Broadcast广播变量，在filter算子中使用Broadcast广播变量进行数据筛选。
+
+  - 3、将数据转换为“(日期_搜索词, 用户)”格式，然后呢，对它进行分组，然后再次进行映射，对每天每个搜索词的搜索用_
+
+    户进行去重操作，并统计去重后的数量，即为每天每个搜索词的uv。最后，获得“(日期_搜索词, uv)”
+
+  - 4、将得到的每天每个搜索词的uv，RDD，映射为元素类型为Row的RDD，将该RDD转换为DataFrame
+
+  - 5、将DataFrame注册为临时表，使用Spark SQL的开窗函数，来统计每天的uv数量排名前3的搜索词，以及它的搜索uv，最后获取，是一个DataFrame
+
+  - 6、将DataFrame转换为RDD，继续操作，按照每天日期来进行分组，并进行映射，计算出每天的top3搜索词的搜索uv的总数，然后将uv总数作为key，将每天的top3搜索词以及搜索次数，拼接为一个字符串
+
+  - 7、按照每天的top3搜索总uv，进行排序，倒序排序
+
+  - 8、将排好序的数据，再次映射回来，变成“日期_搜索词_uv”的格式
+
+  - 9、最后把数据保存到hdfs中
 
