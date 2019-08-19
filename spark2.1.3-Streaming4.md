@@ -124,6 +124,45 @@
 | updateStateByKey | 为每个key维护一份state，并进行更新                           |
 | window           | 对滑动窗口数据执行操作（实时计算中最有特点的一种操作）       |
 
+### DStream的transformation操作
+
+​	
+
+| Output                          | Meaning                                                      |
+| ------------------------------- | ------------------------------------------------------------ |
+| print                           | 打印每个batch中前10个元素，主要用于测试，或者是不需要执行什么output操作时，用于简单触发一些job。 |
+| saveAsTextFile(prefix,[suffix]) | 将每个batch的数据保存到文件中。每个batch的文件命名格式为：prefix-TIME_IN_MS[.suffix] |
+| saveAsObjectFile                | 同上，但是将每个batch的数据以序列化对象的方式，保存到SequenceFile中。 |
+| saveHadoopFile                  | 同上，将数据保存到Hadoop文件中。                             |
+| **foreachRDD**                  | 最常用的output操作，遍历DStream中的每个产生的RDD，进行处理。可以将每个RDD中的数据写入外部存储，比如文件、数据库、缓存等。通常在其中是针对RDD执行action操作的，比如foreach。<br />【和transform实现的功能类似，都可以操作RDD，区别是transform有返回值，foreachRDD没有返回值】 |
+
+### output操作
+
+ - DStream中所有的计算，都是由output操作触发的，比如print().如果没有任何output操作，那么压根就不会执行定义的计算逻辑。
+ - 使用foreachRDD outprint操作，也必须在里面对RDD执行action操作，才能触发对每一个batch的计算逻辑。否则，光影foreachRDD output操作，在里面没有对RDD执行action操作，也不会触发任何逻辑。
+
+### ForeachRDD 详解
+
+ - 通常在foreachRDD中，就会创建一个Conection，比如JDBC Connection，然后通过Connection将数据写入外部存储。
+    - 误区1：在RDD的foreach外部，创建Connection
+       - 它会导致Connection对象被序列化后传输到每个Task中。而这种Connection对象，实际上一般是不支持序列化的，也就无法被传输。
+   - 误区2：在RDD的foreach操作内部，创建Connection
+     - 这种方式是可以的，但是效率低下。因为它会导致对于RDD的每一条数据，都创建一个Connection对象，通常来说，Connection的创建是很消耗性能的。
+   - 合理方式1：使用RDD的foreachPartition操作，并且在该操作内部，创建Connection对象，这样就相当于是，为RDD的每个partition创建一个Connection对象，节省资源的多了。
+   - 合理方式二：自己手动封装一个静态连接池，使用RDD的foreachPartition操作，并且在该操作内部，从静态连接池中，通过静态方法，获取到一个连接，使用之后再还回去。这样的话，甚至在多个RDD的partition之间，也可以复用连接了。而且可以让连接池采取懒创建的策略，并且空闲一段时间后，将其释放掉。
+
+### window滑动窗口操作
+
+​		
+
+| Transform             | 意义                                       |
+| --------------------- | ------------------------------------------ |
+| window                | 对每个滑动窗口的数据执行自定义的计算。     |
+| countByWindow         | 对每个滑动窗口的数据执行count操作。        |
+| reduceByWindow        | 对每个滑动窗口的数据执行reduce操作。       |
+| reduceByKeyAndWindow  | 对每个滑动窗口的数据执行reduceByKey操作。  |
+| countByValueAndWindow | 对每个滑动窗口的数据执行countByValue操作。 |
+
 
 
 ## 缓存与持久化机制+checkpoint机制
