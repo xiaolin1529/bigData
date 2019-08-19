@@ -12,6 +12,8 @@
 [6]:  https://github.com/wangxiaolin123/bigData/blob/master/scala2.11下.md
 [7]:  https://github.com/wangxiaolin123/bigData/blob/master/Hive基础和进阶.md
 [8]:  https://github.com/wangxiaolin123/bigData/blob/master/spark2.1.3-Streaming4.md
+[9]:  https://github.com/wangxiaolin123/bigData/blob/master/2.1.3-SQL5.md
+[10]:  https://github.com/wangxiaolin123/bigData/blob/master/
 
 
 [flume基础以及面试题总结 ][1]
@@ -30,6 +32,10 @@
 
 [spark2.1.3-Streaming4][8]
 
+[2.1.3-SQL5][9]
+
 [Hive基础和进阶][7]
+
+
 
 
