@@ -66,8 +66,8 @@
   - 5 也可以通过调用StreamingContext的stop（）方法，来停止应用程序。
 - 需要注意的要点；
   - 1只要一个StreamingContext启动后，就不能再往里面添加计算逻辑，即执行start()方法后，不能再增加任何任何算子了。
-  - 2 一个StreamingContext停止之后，是肯定不能够重启的。调用stop（）方法后，不能再调用start()'
-  - 3一个JVM同时只能有一个StreamingContext启动。在你的应用程序种，不能创建两个StreamingContext。
+  - 2 一个StreamingContext停止之后，是肯定不能够重启的。调用stop（）方法后，不能再调用start()
+  - 3一个JVM同时只能有一个StreamingContext启动。在你的应用程序中，不能创建两个StreamingContext。
   - 4 调用stop()方法时，会同时停止内部的SparkContext，如果不希望如此，还希望后面继续使用SparkContext，可以使用stop(false)。
   - 一个SparkContext可以创建多个StreamingContext，只要上一个先用stop(false)停止，再创建下一个即可。
 
@@ -80,7 +80,7 @@
   - 1基础数据源：StreamingContext API中直接提供了对这些数据源的支持，比如文件、socket。
   - 2高级数据源：诸如Kafka、Flume、Kinesis、Twitter等数据源，通过第三方工具类提供支持。这些数据源的使用，需要引用其依赖。
   - 3自定义数据源：我们可以自己定义数据源，来决定如何接受和存储数据。
-- 如果想要在实时计算应用中并行接收多条数据流，可以创建多个输入DStream。这样就会创建多个Receiver，从而并行地接收多个数据流。注意，一个Spark Streaming Application的Executor，是一个长时间运行的任务，因此它会独占分配给Spark Atreaming Application的cpu core。从而只要Spark Streaming运行起来以后，它使用的cpu core就没法给其他应用使用了。
+- 如果想要在实时计算应用中并行接收多条数据流，可以创建多个输入DStream。这样就会创建多个Receiver，从而并行地接收多个数据流。注意，一个Spark Streaming Application的Executor，是一个长时间运行的任务，因此它会独占分配给Spark Streaming Application的cpu core。从而只要Spark Streaming运行起来以后，它使用的cpu core就没法给其他应用使用了。
 - 使用本地模式运行程序时，绝对不能用local或local[1],因为那样的话，只会给执行输入Dstream的executor分配一个线程。而Spark Streaming底层的原理是，至少要有两条线程，一条线程用来分配Receiver接收数据，一条线程用来处理接收到的数据，因此必须使用local[n]，n>=2的模式。
 
 
@@ -92,7 +92,7 @@
  - 注意事项
     - 1此时Kafka中的topic的partition与Spark中的RDD的partition是没有关系的。所以在KafkaUtils.createStream()中，提高partition的数量，只会增加一个Receiver中读取partition的线程的数量。不会增加Spark处理数据的并行度。
     - 2**可以创建多个Kafka输入DStream，使用相同的consumer group和topic，来通过多个receiver并行接收数据。**
-    - 3 如果基于容错的文件系统，比如HDFS，启用了预写日志机制，接收到的数据斗湖被赋值到预写日志中。因此，在KafkaUtils。createStream()中，设置的持久化级别是StorageLevel.MEMORY_AND_DISJ_SER.
+    - 3 如果基于容错的文件系统，比如HDFS，启用了预写日志机制，接收到的数据会被复制到预写日志中。因此，在KafkaUtils。createStream()中，设置的持久化级别是StorageLevel.MEMORY_AND_DISJ_SER.
 
 ## DStream Kafka数据源 Direct方式
 

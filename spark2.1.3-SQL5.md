@@ -8,7 +8,7 @@
 
     - 包括：结构化的数据文件，Hive中的表，外部的关系型数据库以及RDD。
 
-- DataSet是分布式的数据集合。DataSet包含了DataFrame的功能，在Spark2。0中两者统一，DataFrame表示为DataSet[Row]
+- DataSet是分布式的数据集合。DataSet包含了DataFrame的功能，在Spark2.0中两者统一，DataFrame表示为DataSet[Row]
 
   - DataSet可以在编译时检查类型，DataFrame在运行时检查类型
   - DataSet是面向对象的编程接口。
