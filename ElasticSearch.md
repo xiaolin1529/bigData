@@ -2,6 +2,35 @@
 
 ## Elasticsearch简介及安装部署
 
+ - ElasticSearch是一个实时的分布式的搜索和分析引擎。它是对lucene进行封装。能够达到实时搜索、稳定可靠、快速等特点。基于REST接口（API）
+
+    - 普通接口请求是...get?a=1
+    - rest接口请求是...get/a/1
+
+- ElasticSearch的用户
+
+  - GitHUb、WiKIpedia、eBay等。
+
+- 全文检索工具
+
+  - Lucene
+    - Java的一个开源搜索引擎，在java世界中是标准的全文检索程序，提供了完整的查询引擎和搜索引擎。http://lucene.apache.org/
+  - solr（solr.4.x solrcloud）
+    - solr是一个用java开发的独立的企业级的搜索应用服务器，提供了类时于Web-service的API接口，它是基于Lucene的全文检索服务器。http://lucene.apache.org/solr/ 
+  - ElasticSearch
+    - ElasticSearch是一个采用java语言开发的基于Lucene构造的开源的、分布式的搜索引擎，能够实现实时搜索。http://lucene.apache.org/solr/ 
+
+- MySQL和ES区别
+
+  | MySQL            | elasticsearch  |
+  | ---------------- | -------------- |
+  | database(数据库) | index(索引库)  |
+  | table（表）      | type(类型)     |
+  | row(行)          | document(文档) |
+  | column(列)       | field(字段)    |
+
+  
+
 ## Elasticsearch的基本操作
 
 - curl 命令
