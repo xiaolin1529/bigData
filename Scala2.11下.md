@@ -226,11 +226,131 @@ java是完全面向对象的编程语言，没有任何面向过程编程语言�
 
 ## 模式匹配
 
+ - 模式匹配是Scala中非常有特色，非常强大的一种功能。模式匹配，其实类似于Java中的switch case语法，即对一个值进行条件判断，然后针对不同的条件，进行不同的处理。
 
+ - 但是Scala的模式匹配的功能比Java的switch case 语法的功能要强大地多，Java的switch case语法只能对值进行匹配。但是Scala的模式匹配除了可以对值进行匹配外，还可以对类型进行匹配、对Array和List的元素情况进行匹配、对case class进行匹配、甚至对有值或没值(Option)进行匹配。
+
+ - Scala是没有Java中的switch case语法的，相应的，Scala提供了更加强大的match case 语法，即模式匹配来替代switch case，match case也被称为模式匹配。
+
+ - Scala的match case与Java的switch case最大的不同点在于，Java的switch case仅能匹配变量的值，比如1、2、3等；而Scala的match case可以匹配各种情况，比如变量的类型、集合的元素、有值或无值
+
+ - match case的语法如下
+
+   - 变量match{case 值=> 代码}
+   - 如果值为下划线，则代表了不满足以上所有情况下的默认情况如何处理
+   - 此外，match case中，只要一个case分支满足并处理了，就不会继续判断下一个case分支了（与Java不同java的switch case）
+   - match case语法最基本的应用，就是对变量的值进行模式匹配。
+
+- 对类型进行模式匹配
+
+   - Scala的模式匹配一个强大之处就在于可以直接匹配类型，而不是值，这是Java的switch case做不到的。
+   - 其他语法与匹配值其实是一样的，但是匹配类型的话，就是要用 case 变量:类型 => 代码 这种语法，而不是匹配值的 case 值 => 代码 这种语法
+
+- 案例：异常处理
+
+   ```scala
+   import java.io._
+   
+   def processException(e: Exception) {
+     e match {
+       case e1: IllegalArgumentException => println("you have illegal arguments! exception is: " + e1)
+       case e2: FileNotFoundException => println("cannot find the file you need read or write!, exception is: " + e2)
+       case e3: IOException => println("you got an error while you were doing IO operation! exception is: " + e3)
+       case _: Exception => println("cannot know which exception you have!" )
+     }
+   }
+   
+   ```
+
+- case class 与模式匹配
+
+   - Scala中提供了一种特殊的类，用case class进行声明，中文也可以称作样例类。case class其实有点类似与Java中的JavaBean的概念。即只定义field，并且由scala编译时自动提供getter和setter方法，但是没有method
+   - case calss的主构造函数接收的参数通常不需要var或val修饰，Scala自动就会使用val修饰(如果你自己使用var修饰，那么还是会按照var来。)
+   - Scala自动为case class 定义了伴生对象，也就是object，并且定义了apply()方法，该方法接收主构造函数中相同的参数，并返回case 对象。
+
+- Option与类型匹配
+
+   - scala有一种特殊的类型，叫做Option。Option有两种值，一种时Some，表示有值，一种时None，表示没有值。
+   - Option通常会用于模式匹配中，用于判断某个变量是有值还是没值，这比null更加简洁明了。
+   - Spark源码中大量使用了Option，比如Some(a),None这种语法，必须看得懂Option模式匹配，才能够读懂Spark源码。
 
 ## 类型参数
 
+ - 类型参数-泛型
 
+    - Scala的类型参数和Java泛型一样，也是定义一种类型参数，比如在集合，在类在函数中，定义类型参数，然后就可以保证使用到该类型参数的地方，就肯定也只能是这种类型。从而实现程序更好的健壮性。
+
+    - 泛型可以用在类上或者函数上。
+
+       - 案例1 新生报到，id可能为Int，也可能是String
+
+         ```scala
+         class Student[T](val localId: T) {
+           def getSchoolId(hukouId: T) = "S-" + hukouId + "-" + localId
+         }
+         
+         val stu= new Student[Int](111)
+         
+         ```
+
+      - 案例2 卡片售卖机 内容可以是String类型或Int类型
+
+        ```scala
+        def getCard[T](content: T) = {
+          if(content.isInstanceOf[Int]) "card: 001, " + content
+          else if(content.isInstanceOf[String]) "card: this is your card, " + content
+          else "card: " + content
+        }
+        
+        getCard[String]("hello world")
+        
+        
+        ```
+
+        
 
 ## 隐式转换与隐式参数
 
+### 简介
+
+ - Scala提供的隐式转换和隐式参数功能，是非常有特色的功能。是Java等编程语言所没有的功能。它可以允许你手动指定，将某种类型的对象转换成其他类型的对象。通过这些功能，可以实现非常强大，而且特殊的功能。
+ - Scala的隐式转换，其实最核心的就是定义隐式转换函数，即  **implicit conversion function **。定义的隐式转换函数，只要在编写的程序内引入，就会被Scala自动使用。Scala会根据隐式转换函数的签名，在程序中使用到隐式转换函数接收的参数类型定义的对象时，会自动将其传入隐式转换函数，转换为另外一种类型的对象并返回。这就是“隐式转换”
+ - 隐式转换函数叫什么名字是无所谓的，因为通常不会由用户手动调用，而是由Scala进行调用。但是如果要使用隐式转换，则需要对隐式转换函数进行导入。因此通常建议将隐式转换函数的名称命名为“one2one”的形式
+ - Spark源码中有大量的隐式转换和隐式参数，因此必须熟悉这种语法
+
+
+
+### 隐式转换
+
+ - 要实现隐式转换，只要程序可见的范围内定义隐式转换函数即可。Scala会自动使用隐式转换函数。隐式转换函数与普通函数唯一的语法区别就是，要以implicit开头，而且最好要定义函数返回类型
+
+ - 隐式转换非常强大的一个功能，就是可以在不知不觉中加强现有类型的功能。也就是说，可以为某个类定义一个加强版的类，并定义互相之间的隐式转换，从而让源类在使用加强版的方法时，由Scala自动进行隐式转换为加强类，然后再调用该方法
+
+ - 案例：特殊售票窗口（只接受特殊人群，比如学生、老人等）
+
+   ```scala
+   class SpecialPerson(val name: String)
+   class Student(val name: String)
+   class Older(val name: String)
+   
+   implicit def object2SpecialPerson (obj: Object): SpecialPerson = {
+     if (obj.getClass == classOf[Student]) { val stu = obj.asInstanceOf[Student]; new SpecialPerson(stu.name) }
+     else if (obj.getClass == classOf[Older]) { val older = obj.asInstanceOf[Older]; new SpecialPerson(older.name) }
+     else Nil
+   }
+   
+   var ticketNumber = 0
+   def buySpecialTicket(p: SpecialPerson) = {
+     ticketNumber += 1
+     "T-" + ticketNumber
+   }
+   ```
+
+
+
+### 隐式转换函数作用域与导入
+
+ - Scala默认会使用两种隐式转换，
+    - 一种是源类型，或者目标类型的伴生对象内的隐式转换函数；
+    - 一种是当前程序作用域内的可以用唯一标识符表示的隐式转换函数
+ - 如果隐式转换函数不在上述两种情况下的话，那么就必须手动使用import语法引入某个包下的隐式转换函数，比如import test._。通常建议，仅仅在需要进行隐式转换的地方，比如某个函数或者方法内，用import导入隐式转换函数，这样可以缩小隐式转换函数的作用域，避免不需要的隐式转换
