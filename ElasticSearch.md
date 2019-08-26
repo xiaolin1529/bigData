@@ -283,7 +283,39 @@
 
     - 批量操作
 
+      - ```java
+         BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+          
+         IndexRequest indexRequest = new IndexRequest(index, type);
+         indexRequest.source("{\"name\":\"zs8888\"}",XContentType.JSON);
+          
+         //  执行批量操作
+                BulkResponse bulkItemResponses = bulkRequestBuilder.get();
+                //  因为这一批数据在执行的时候，有可能会有一部分数据执行失败，所以在执行之后可以获取一些失败信息
+                if(bulkItemResponses.hasFailures()){
+                    //  如果有失败进行，则为true
+                    //  获取失败信息
+                    BulkItemResponse[] items = bulkItemResponses.getItems();
+                    for (BulkItemResponse item: items) {
+                        //  打印具体的失败消息
+                        System.out.println(item.getFailureMessage());
+                    }
+                }else{
+                    System.out.println("全部执行成功!!!");
+                }
+          
+        ```
+
     - 查询类型searchType
+
+      | 元素                 | 含义                                                         |
+      | -------------------- | ------------------------------------------------------------ |
+      | query_then_fetch     | 查询是针对所有的块执行的，但是返回的是足够的信息，而不是文档内容（Documnet）。结果会被排序和分级，基于此，只有相关的块的文档对象会被返回。由于被取到的仅仅是这些，故返回的hit的大小正好等于指定的size。这对于有许多块的index来说是很便利的（返回结果不会有重复的。因为块被分组了）。 |
+      | query_and_fetch      | 最原始(也可能是最快的)实现就是简单的在所有相关的shard上执行检索并返回结果。每个shard返回一定尺寸的结果。由于shard已经返回一定尺寸的hit，这种类型实际上是返回多个shard的一定尺寸的结果给调用者。 |
+      | dfs_query_then_fetch | 与query_then_fench相同，预期一个初始散射相伴用来更为准确的score计算分配了的term频率 |
+      | dfs_query_and_fetch  | 与query_and_fetch相同，预期一个初始散射相伴用来更为准确的score计算分配了的term频率 |
+
+      
 
     - es搜索有四种
 
@@ -304,16 +336,335 @@
 
 ## Elasticsearch 分词详解(整合ik分词器,自定义词库,热更新词库)
 
+ - es搜索系统的索引结构是倒排索引
+ - 结构（
+ - 单词ID：记录每个单词的单词编号
+ - 单词： 对应单词
+ - 文档频率： 代表文档集合中有多少文档包含某单词
+ - 倒排列表： 包含单词ID以及其他必要信息
+    - Docld： 单词出现的文档id
+    - TF：单词在某个文档中出现的次数
+    - POS: 单词在文档中出现的位置
+ - ）
+
+
+
+### 分词器
+
+ - 分词器是把一段文本中的词按一定规则进行切分。对应的是Analyzer类，这是一个抽象类，具体规则是由子类实现的，所以对于不同的语言，要用不同的分词器，不同语言的分词器是不同的。
+ - 在创建索引时会用到分词器，在搜索时也会用到分词器，两个地方要是使用同一个分词器，否则可能会搜索不出结果。
+ - 工作流程
+    - 1切分关键词
+    - 2去除停用词(a,an,the of，的了 ) 
+       - 英文停用词 http://www.ranks.nl/stopwords
+       - 中文停用词 http://www.ranks.nl/stopwords/chinese-stopwords
+    - 3 对于英文，全部转小写（搜索时不区分大小写）
+- 中文分词有 单词分词，二分分词，词库分词
+  - 几个重要分词器
+    - StandardAnalyzer 单字分词
+    - ChinessAnalyzer 单字分词
+    - CJKAnzlyzer 二分分词
+    - IKAnalyzer 词库分词
+
+### ES中文分词插件 es-ik
+
+ - es官方默认分词器 对中文分词效果不理想
+ - 集成ik分词工具
+    - 下载es的ik插件 https://github.com/medcl/elasticsearch-analysis-ik/releases
+    - 解压到es_home/plugins/ik目录下 unzip
+    - 重启es
+    - 测试分词效果 curl -H "Content-Type: application/json" 'http://localhost:9200/test/_analyze?pretty=true' -d '{"text":"我们是中国人","tokenizer":"ik_max_word"}'
+       - 分词模式：
+          - ik_max_word:会将文本做最细颗粒度的拆分，会穷尽各种可能的组合
+          - ik_smart: 会做最粗粒度的拆分。
+   - es-ik 自定义词库
+     - 自定义词库
+       - 在ik目录下面创建一个custom目录，创建一个my.dic文件,放入不想被切分的词
+       - 编辑config/IKAnalyzer.cfg.xml文件
+       - `<entry key="ext_stopwords">custom/my.dic</entry>`
+       - 重启es
+     - 热更新ik词库
+       - 编辑onfig/IKAnalyzer.cfg.xml文件
+       - `<entry key="remote_ext_dict">网络位置</entry>`
+       - 可以从网络中添加一个文件作为词典如http://192.168.80.100:8080/hot.dic
+     - 词典文件必须是utf8 无bom的。
+
 ## Elasticsearch 查询详解(置顶查询,高亮,聚合等...)
+
+```java
+ SearchResponse searchResponse = client.prepareSearch(index)
+
+                .setQuery(QueryBuilders.matchAllQuery()) // 查询所有数据
+                //.setQuery(QueryBuilders.matchQuery("name","tom")) // 根据某一列进行模糊查询，不支持通配符
+               // .setQuery(QueryBuilders.multiMatchQuery("tom","name","dada"))// 根据多列进行模糊查询
+               // .setQuery(QueryBuilders.queryStringQuery("name:to*")) //lucene语法，支持*？通配符
+             /*   .setQuery(QueryBuilders.boolQuery()
+                .should(QueryBuilders.matchQuery("name","tom")).boost(5.0f)
+                        .should(QueryBuilders.matchQuery("age",45)).boost(1.0f)
+                )*/
+                // .setQuery(QueryBuilders.termQuery("name","tom"))//默认会分词
+                // 默认索引库分词，termQuery查不到数据
+                //.setQuery(QueryBuilders.queryStringQuery("name:\"tom train\""))
+                .setSize(5) //一次获取多少条数据，默认10
+                .setFrom(0) // 表示从哪一条数据开始，默认角标为0
+                .addSort("age",SortOrder.DESC) // 指定字段进行排序
+                .setPostFilter(QueryBuilders.rangeQuery("age").from(15).to(20))//对数据进行过滤
+                .setExplain(true) // 根据数据匹配度返回数据
+                .get();
+
+
+        SearchHits hits = searchResponse.getHits();
+        // 获取查询数据的总条数
+        long totalHits = hits.getTotalHits();
+        System.out.println("数据总条数"+totalHits);
+
+        for(SearchHit item:hits){
+            System.out.println(item.getSourceAsString());
+        }
+```
+
+ - 统计 使用aggregations 
+
+    - 根据字段进行分组统计
+    - 根据字段分组，统计其他字段的值
+    - size设置为0，会获取所有数据，否则，默认返回前10个分组的数据。
+
+   ```java
+   /**
+        * 聚合，aggregation 分组求sum
+        * @param client
+        */
+       private static void testAggSum(TransportClient client) {
+   
+           SearchResponse searchResponse = client.prepareSearch("test")//   指定索引库信息。可以指定多个，中间用逗号隔开
+                   .setQuery(QueryBuilders.matchAllQuery())//  指定查询规则
+                   .addAggregation(AggregationBuilders.terms("name_term").field("name.keyword")//默认name是Text类型，这个类型不支持排序，所以需要使用这个字段的keyword类型
+                           .subAggregation(AggregationBuilders.sum("score_sum").field("score"))
+                   )// 指定分组字段和聚合字段信息
+                   .get();
+           //  获取分组信息
+           Terms name_term = searchResponse.getAggregations().get("name_term");
+           List<? extends Terms.Bucket> buckets = name_term.getBuckets();
+           for (Terms.Bucket bk: buckets) {
+               //  获取分值的和
+               Sum score_sum = bk.getAggregations().get("score_sum");
+               System.out.println(bk.getKey()+"----"+score_sum.getValue());
+           }
+   
+       }
+   
+   /**
+        *  统计相同年龄学员的个数
+        * @param client
+        */
+       private static void testAggcount(TransportClient client) {
+   
+           SearchResponse searchResponse = client.prepareSearch(index)
+                   .setQuery(QueryBuilders.matchAllQuery())
+                   .addAggregation(AggregationBuilders.terms("age_term").field("age"))
+                   .get();
+           Terms age_term = searchResponse.getAggregations().get("age_term");
+           List<? extends Terms.Bucket> buckets = age_term.getBuckets();
+           for (Terms.Bucket bk:
+                buckets) {
+               System.out.println(bk.getKey()+"__"+bk.getDocCount());
+           }
+   
+       }
+   ```
+
+### ES 删除索引库
+
+   - curl -XDELETE 'http://localhost:9200/test'
+   - transportClient.admin().indices().prepareDelete("test").get();
+   - 注意：这样会把索引库及索引库中的所有数据都删掉，慎用。
+
+### ES 分页
+
+ - 与SQL使用LIMIT来控制单”页“数量类似，Elasticsearch使用的是form以及size两个参数：
+    - from：从哪条结果开始，默认值为0
+    - size：每次返回多少个结果，默认为10
+- 假设每页显示5条结果，1页至3页的请求就是：
+  - GET /_search?size=5
+  - GET /_search?size=5&from=5
+  - GET /_search?size=5&from=10
+- 注意： 不要一次请求过多或者页码过大的结果，这么做会对服务器造成很大压力。因为它们会在返回前排序。一个请求会经过多个分片。每个分片都会生成自己的排序结果。然后再集中进行整理，以确保最终结果的正确性。
 
 ## Elasticsearch的settings和mappings详解
 
+- settings修改索引库默认配置
+  - 如分片数量、副本数量。
+  - 查看：` curl -XGET http://localhost:9200/test/_settings?pretty`
+  - 操作不存在索引：` curl -H "Content-Type: application/json" -XPUT 'localhost:9200/test1/' -d'{"settings":{"number_of_shards":3,"number_of_replicas":0}}'`
+  - 操作已经存在索引：` curl -H "Content-Type: application/json" -XPUT 'localhost:9200/test1/_settings' -d'{"index":{"number_of_replicas":1}}'`
+- Mapping,就是对索引库中索引的字段名称以及数据类型进行定义，类似于mysql的表结构信息。不过es的mapping比数据库灵活很多，它可以动态识别字段。一般不需要指定mapping都可以。因为es会自动根据数据格式识别它的类型，如果你需要对某些字段添加特殊属性（定义使用其它分词器、是否分词、是否存储），就必须手动添加mapping。
+  - 查询索引库的mapping信息
+    - `curl -XGET http://localhost:9200/test/emp/_mapping?pretty`
+  - 指定分词器
+    - `curl -H "Content-Type: application/json" -XPUT 'localhost:9200/test2' -d'{"mappings":{"emp":{"properties":{"name":{"type":"text","analyzer": "ik_max_word"}}}}}'`
+  - 
+
 ## Elasticsearch的分片查询方式
+
+- 默认randomize across shards
+  - 随机读取，表示随机从分片中读取数据。
+- _local:指查询操作会优先在本地节点有的分片进行查询，没有的话再去其他节点查询。
+- _only_local:指查询只会在本地节点有的分片中查询。
+- _primary: 指查询只在主分片中查询。
+- _replica:指查询只在副本中查询
+- _primary_first: 指查询会先在主分片中查询，如果主分片找不到(挂了),再去副本中查询。
+- _replica_first: 指查询会先在副本中查询，如果副本找不到了(挂了),就会在主分片中查询。
+- _only_node: 指在指定id的节点里面进行查询，如果该节点只要有查询索引的部分分片，就会在这部分分片中查找，所以查询结果可能不完整。
+- _only_nodes: 指定多个节点id，查询多个节点的数据。
+- _prefer_node:nodeid 优先在指定的节点上查询
+- _shards:0,1,2,3：查询指定分片的数据。
 
 ## Elasticsearch的脑裂问题分析
 
+ - 同一个集群中的不同节点对集群的状态有了不一样的理解。
+
+ - discovery.zen.minimum_master_nodes
+
+    - 用于控制选举行为发生的最小集群节点数量。推荐设为大于1的数值，因为只有在2个以上节点的集群中，主节点才是有意义的。
+
+   
+
 ## Elasticsearch扩展之索引模板和索引别名
+
+- 在实际工作中针对一批大量数据存储的时候需要使用多个索引库，如果手工指定每个索引库的配置信息(settings和mappings)的话就很麻烦了。
+
+  - 创建模板 https://www.elastic.co/guide/en/elasticsearch/reference/6.4/indices-templates.html
+
+    - ```shell
+      curl -H "Content-Type: application/json" -XPUT localhost:9200/_template/template_1 -d '
+      {
+          "template" : "*",
+          "order" : 0,
+          "settings" : {
+              "number_of_shards" : 1
+          },
+          "mappings" : {
+              "type1" : {
+                  "_source" : { "enabled" : false }
+              }
+          }
+      }
+      '
+      curl -XPUT localhost:9200/_template/template_2 -d '
+      {
+          "template" : "te*",
+          "order" : 1,
+          "settings" : {
+              "number_of_shards" : 1
+          },
+          "mappings" : {
+              "type1" : {
+                  "_source" : { "enabled" : true }
+              }
+          }
+      }
+      '
+      
+      ```
+
+    - 注意 order值大的模板内容会覆盖order值小的。
+
+  - 查看模板： ` curl -XGET localhost:9200/_template/temp*?pretty`
+
+  - 删除模板： `curl -XDELETE localhost:9200/_template/temp_1`
+
+
+
+### ES扩展之index alias
+
+ - 索引别名的应用场景：
+ - 公司使用es收集应用的运行日志，每个星期创建一个索引库，这样时间长了就会创建很多的索引库，操作和管理的时候很不方便。
+ - 由于新增索引数据只会操作当前这个星期的索引库，所以就创建了两个别名
+   - curr_week：这个别名指向这个星期的索引库，新增数据操作这个索引
+   - last_3_month：这个别名指向最近三个月的所有索引库，因为我们的需求是查询最近三个月的日志信息。后期只需要修改这两个别名和索引库之间的指向关系即可。应用层代码不需要任何改动。
+     还要把三个月以前的索引库close掉，留存最近一年的日志数据，一年以前的数据删除掉。
+ - ES默认对查询的索引的分片总数量有限制，默认是1000个，使用通配符查询多个索引库的时候会这个问题，通过别名可以解决这个问题
 
 ## Elasticsearch参数优化
 
+### 优化1
+
+ 1. 解决启动的警告信息
+
+     	1. max file descriptors [4096] for elasticsearch process likely too low, consider increasing to at least [65536]
+          	2. vi /etc/security/limits.conf 添加下面两行(使用root用户)
+         - \* soft nofile 65536
+         - \* hard nofile 131071
+
+ 2. 修改配置文件调整ES的JVM内存大小
+
+     1. 修改bin/elasticsearch.in.sh中ES_MIN_MEM和ES_MAX_MEM的大小，建议设置一样大，避免频繁分配内存，根据服务器内存大小，一般分配60%左右（默认256M）
+
+     2. 内存最大不要超过32G
+
+        一旦你越过这个神奇的32 GB边界，指针会切换回普通对象指针.。每个指针的大小增加，使用更多的CPU内存带宽。事实上，你使用40~50G的内存和使用32G的内存效果是一样的。
+
+ 3. 设置memory_lock来锁定进程的物理内存地址
+
+     	1. 避免交换(swapped)，来提高性能
+          	2. 修改文件conf/elasticsearch.yml
+               	3. bootstrap.memory_lock:true
+                    	4. 需要根据es启动日志修改/etc/security/limits.conf文件(重启系统)
+
+
+
+### 优化2
+
+ 1. 分片多的话，可以提升索引的能力，5-20个比较合适
+
+     	1. 如果分片数过少或过多，都会导致检索比较慢。
+          	2. 分片数过多会导致检索时打开比较多的文件，另外也会导致多台服务器之间大量通讯。
+               	3. 而分片数量过少导致单个分片索引过大，所以检索速度也会慢。
+                    	4. 建议单个分片存储20G左右的索引数据【最高也不要超过50G,否则性能会很差】，所以分片数量=数据总量/20G
+
+	2. 副本过多的话，可以提升搜索的能力，但是如果设置很多副本的话，也会对服务器造成额外的压力，因为主分片需要给所有副本同步数据。所以建议最多设置1-2个即可。
+
+    查看索引库某个分片占用磁盘空间大小
+
+    ​	`curl -XGET  "localhost:9200/_cat/segments/test?v&h=shard,segment,size"`
+
+### ES 优化3
+
+ - 要定时对索引进行合并优化，不然segment越多，占用的segment memory越多，查询的性能也越差
+    - 索引量不是很大的情况下可以将segment设置为1
+    - es2.1.0以前调用\_optimize接口，后期改为\_forcemerge接口
+    - `curl -XPOST 'http://localhost:9200/test/_forcemerge?max_num_segments=1'`
+    - `client.admin().indices().prepareForceMerge("test").setMaxNumSegments(1).get();`
+    - 索引合并是针对分片的。segment设置为1，则每个分片都有一个索引片段。
+- 针对不使用的index，建议close，减少内存占用。因为之一索引处于open状态，索引库中的segement就会占用内存，close之后就只会占用磁盘空间了。
+  - `curl -XPOST 'localhost:9200/test/_close'`
+
+
+
+### ES 优化4
+
+- 删除文档： 在es中删除文档，数据不会马上在硬盘中除去，而是在es索引中产生一个.del的文件，而在检索中这部分数据也会参与检索，es在检索过程会判断是否删除了，如果删除了再过滤掉。这样会降低检索效率。所以可以执行清除删除文档
+- `curl -XPOST 'http://localhost:9200/test/_forcemerge?only_expunge_deletes=true'`
+- `client.admin().indices().prepareForceMerge("test").setOnlyExpungeDeletes(true).get();`
+
+### ES 优化5
+
+- 如果在项目开始的时候需要批量入库大量数据的话，建议将副本数设置为0
+  - 因为es在索引数据的时候，如果有副本存在，数据包也会马上同步到副本中，这样会对es增加压力。可以等索引完成后将副本按需要改回来，这样可以提高索引效率。
+
+### ES需要注意的问题
+
+使用java操作es集群的时候要保证本地使用的es的版本和集群上es的版本保持一致。
+
+​	es集群的jdk版本不一致可能会导致 org.elasticsearch.transport.RemoteTransportException: Failed to deserialize exception response from stream
+
+
+
+
 ## Elasticsearch源码分析
+
+- elasticsearch在建立索引时，根据id或(id，类型)进行hash，得到hash值之后再与该索引的分片数量取模，取模的值即为存入的分片编号。
+- 可以指定把数据存储到某一个分片中，通过routing参数
+  - `curl -XPOST 'localhost:9200/yehua/emp?routing=rout_param' -d '{"name":"zs","age":20}'`
+  - routing（路由参数）
+- 注意： 显著提高查询性能，routing，(急速查询)
